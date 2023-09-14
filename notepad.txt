@@ -1,0 +1,38 @@
+0. Introduction 
+"Socket address" is consist of IP address and Port number. 
+소켓은 4계층 상위 계층과 하위 계층간의 정보를 주고 받기 위한 구멍이다. 
+
+
+1. Understanding of Socket & Socket API
+Socket connection run between two diff coms or be used for interprcess comu on a single com.
+
+Berkeley Socket API Functions 
+
+Basic operating function
+socket() -> bind(): binding Socket with port&IP address on OS  -> 
+listen(): used on server side, listening a connection request from client *only for TCP -> connect(): used ont he client side, assigning a free local port number to a socket, attempting to establish a new TCP conn. ->
+accept() : used on serve side, accepting a received incoming attepmt, creating a new socket associated with the socket address pair (cli) of this conn. 
+
+send,recv,sendto,close()
+
+setsockopt() : set a particualr socket option
+
+socketserver module :
+It simplifies the task of writing network servers.
+
+BaseServer(server_address, RequestHandlerClass)
+This is superclass of all Server objects in the module. 
+
+BaseRequestHandler
+This is superclass of all request handler  objects in the module.
+A concrete handler subclass  must define new handle() method.
+
+ 
+1. create request handler class by subclassing the BaseRequestHandler class and overriding its handle() method 
+2. create server classes, oassing the server's address and port, handler class
+3. classs the handle_reqest() or serve_forveerer() method of BaseServer class.
+
+2. 1:1 
+여기까지는 1:1 통신만 가능하다. 
+멀티쓰레딩 기법을 통해서나 Socket API 의 고유 기능을 통해 1:N 통신을 구현해야한다. 
+
