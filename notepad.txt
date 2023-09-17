@@ -95,3 +95,33 @@ server_thread.start() #start the thread
 threading.active_count()
 server_thread_Run() 
 
+3. Asynchrouns chatting service
+N:M communication 
+
+클라이언트측 변경 내용 
+Threading 을 사용하여 수신과 송신을 비동기적으로 분리
+전송은 사용자로부터 키보드 입력을 받아야하므로 Thread 화 하지 않고,
+수신은 서버의 echo 를 기다려야하는 것이므로, Thread 화 한다.
+
+
+반복구문에 있어야할 Recv 처리를 별도의 함수 로 처리한다. (이경우에는 클래스가 아님)
+그리고 클라이언트측의 recvHandler 를main 에서 Thread 화한다. 
+clientThread = threading.Thread(target=recvHandler, args=(clientSocket,))
+
+송신은 동기, 수신은 비동기식으로 동작하도록 Threading 화 해준다. 
+
+
+서버측 변경 내용 
+N:M 통신을 위해서 서버는 각 클라이언트의 socket 정보를 저장해아한다. 
+연결해제 요청이 오면 저장딘 정보를 제거하는것. 
+특정 client 의 메시지를 전체 client에 전송한다. 
+
+4. UDP Echo server/client 
+connect(), listen() 단계가 생략된다. 
+TCP 의 경우 active socket 의 갯수를 파악 가능하지만, UDP 의 경우 message based, connection-less  이기 때문에 클라이언트의 소켓 정보를 가지고 있지 않다. 따라서 클라이언트들이 직접 자신들이 연결했다는것을 알려주는것이 일반적이다. 
+#REG or #DEREG 기능 구현 
+
+
+You get remote address information with every incoming UDP datagram, so you konw who it's from, so you don'y need a per-connection socket to tell you. 
+You must explicitly give  client address to sendto function since there's no socket connection to client.
+
