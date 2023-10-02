@@ -125,3 +125,73 @@ TCP 의 경우 active socket 의 갯수를 파악 가능하지만, UDP 의 경�
 You get remote address information with every incoming UDP datagram, so you konw who it's from, so you don'y need a per-connection socket to tell you. 
 You must explicitly give  client address to sendto function since there's no socket connection to client.
 
+5. Zero Message Queue 
+Request-Reply pattern 
+Socket 프로그래밍에서 사용하던 것을 그대로 ZMQ 에서 사용하고자 한다면 이 Request-Reply pattern 을 사용하면 된다. 
+클라이언트 측에서는 동기식으로 보인다. Request 를 주고, Reply 가 와야 다음 Request 를 보낼 수 있기 때문이다. 
+
+제일먼저 Context() 를 호출하여 Context 객체를 생성해야한다. 이것은 ZMQ 를 위한 일종의 프로그램을 실행해주는것이라고 생각하면 된다. 
+
+Socket programming 에서는 Socket 을 생성하는 절차가 가장 먼저 있지만, zmq 에서는 언어 자체에서는 제공하지 않는다. 
+그리고 Context 객체로 socket 을 생성한다. 이 Socket 을 생성할때 어떠한 Pattern 인지를 알려줘야한다. Reply pattern 같은 경우는 다음과 같다. 
+
+context = zmq.Context() 
+socket = context.socket.(zmq.REP) #누군가에게 Request 를 받으면 Reply 를 주는 Pattern 이다. 
+socket.bind("tcp://*:5555")
+socket.recv() 
+socket.send(b"world") 등을 사용,
+
+클라이언트의 경우 
+동일하게 Context 및 Socket 생성
+
+context = zmq.Context()
+socket = context.socket(zmq.REQ) #누군가에게 Request 를 보내는 Pattern 
+socket.recv()
+socket.send(b"hello"
+
+1:N 이 되도록 해야한다면? 
+아무것도 하지 않아도 된다. 앞서 만든 basic 코드를 수정하지 않아도 된다. 
+
+Publish-Subscribe pattern
+단순 Socket Programming 이나 Request-Reply 패턴과는 양상이 다른, enhance한 기능을 수행하는 패턴이다. 
+어딘가에 구독하면 그 구독된 곳에서 Publish 해서 정보를 알려주는것이다. 
+정보를 만들고 배포하는 자가 있고, 단체가 받는것이라 생각하면 된다. 일반적으로 알람 메시지 같은것을 생각해보면 된다.
+
+접근을 당하는 애들이 bind 한다. 즉, 서버와 클라이언트라는 역할이 명확하게 구분되지 않는다. 
+
+PUB-SUB Weather broadcating example 
+Publisher pushes out weather updates.
+Subscriber grabs anyting to do with a specified zip code.
+즉, Subs 는 Publisher 가 Push 하는 정보 중에 원하는것만 가져올 수 있다. 
+
+setsockopt_string(zmq.SUBSCRIBE, zip_filter)
+#SUBSCRIBE 소켓을 열면서 소켓에 zip_filter 라는 필터 옵션을 주는것이다. option 에다가 String 으로다가 정보를 준다. 
+
+PUB-SUB socket is unidirectional (한방향 통신)
+
+PUB-SUB with Pipeline 
+Pipeline : 동시다발적으로 여러개의 작업을 같이 실행, 그것들을 취합하여 하나의 결과를 가져오는것.
+Divide - Conquer 형식이라 볼 수 있다. 
+
+N:M 통신이라는 뜻의 fan-out/fan-in 패턴이다. 
+PUSH/PULL 을 사용한다. Worker 들은 자기가 필요한 시간에 필요한 정보를 PULL  하여 작업을 수행함. 
+Sink 에서는 WOrker 들로부터 정보를 받을떄 누구로부터 정보를 먼저 받을지 조절할 수있다. fair-queueing 와 같은 방식. 이는 코드를 통해 방식을 바꿀 수 있다. 
+주로 병렬적으로 일을 처리, 한곳에 정보를 모으는 작업을 할때 사용되는 패턴이다. 
+PUB/SUB with pipeline pattern 에서는 PUSH/PULL 기능이 등장한다.  
+
+서버는 클라이언트들로부터 PULL 한 정보를 다시 클라이언트들에게 PUSH 한다.
+하나의 프로세스, 애플리케이션등에는 여러개의 ZMQ 패턴을 가질 수 있다. 
+
+if __name__ == '__main__': 은 인터프리터에게 주어진 최초의 파이썬 소스코드인가를 검사하는 구문이다.  즉, 메인 코드인지를 검사하는 구문이다. 
+두개 이상의 소스코드를 만들어서 모듈화 할떄 이 구문을 사용하면 된다. 
+
+클라이언트들은 살았다 죽었다하면서 자신의 정보를 PUSH 할것이므로, 서버측의 PULL socket 에서 bind을 수행해야한다. 
+collector.bind("tcp://*:5558")
+
+pull socket 의 recv한 정보를 pub socket 을 통해 send한다. 
+이것은 하나의 Relay 서버라고 볼 수 있다. 
+통신 프로그램에서는 데이터의 종류를 잘 신경써야한다. 
+
+poll 은 수신버퍼에 데이터가 있어서 해당 데이터를 recv, 즉 읽어야 하나 말아야 하나 묻는것이다. 있으면 TRUE 를 반환한다.
+zmq.POLLIN 함수와 subscriber.poll() 함수를 사용한다. 이때 subscriber 은 SUB socket 이다. 
+수신버퍼에 뭐가 있다고 TRUE 가 반환되면 SUB socket.recv 을 사용하여 데이터를 읽어오고, 읽을 것이 없다면, PUSH socket.send 을 통해서 데이터를 전송한다.  
